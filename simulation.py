@@ -74,11 +74,11 @@ radar = Radar(transmitter=tx, receiver=rx)
 ############################################################
 # Define targets
 ############################################################
-target_1 = dict(location=(200, 0, 0), speed=(-5, 0, 0), rcs=20, phase=0)
-target_2 = dict(location=(150, 0, 0), speed=(-25, 0, 0), rcs=15, phase=0)
-target_3 = dict(location=(50, 0, 0), speed=(0, 0, 0), rcs=5, phase=0)
+target_1 = dict(location=(150, 0, 0), speed=(-12, 0, 0), rcs=30, phase=0)
+target_2 = dict(location=(95, 20, 0), speed=(-50, 0, 0), rcs=40, phase=0)
+target_3 = dict(location=(30, -5, 0), speed=(-22, 0, 0), rcs=5, phase=0)
 
-targets = [target_2, target_3]
+targets = [target_1, target_2]
 
 
 ############################################################
@@ -151,6 +151,8 @@ doppler_axis = np.linspace(
     endpoint=False,
 )
 
+# Plot
+
 fig = go.Figure()
 
 fig.add_trace(
@@ -216,6 +218,8 @@ doppler_axis = np.linspace(
     endpoint=False,
 )
 
+# Plot
+
 fig = go.Figure()
 fig.add_trace(
     go.Surface(
@@ -235,6 +239,57 @@ fig.update_layout(
         zaxis=dict(title="Amplitude (dB)"),
         aspectmode="cube",
     ),
+)
+
+# uncomment this to display interactive plot
+fig.show()
+
+############################################################
+# CFAR
+############################################################
+
+ca_cfar = proc.cfar_ca_1d(
+    np.abs(range_profile[0, 0, :]) ** 2,
+    guard=2,
+    trailing=10,
+    pfa=1e-4,
+    detector="squarelaw",
+)
+os_cfar = proc.cfar_os_1d(
+    np.abs(range_profile[0, 0, :]) ** 2,
+    guard=0,
+    trailing=10,
+    k=14,
+    pfa=1e-4,
+    detector="squarelaw",
+)
+
+max_range = (
+    3e8
+    * radar.radar_prop["receiver"].bb_prop["fs"]
+    * radar.radar_prop["transmitter"].waveform_prop["pulse_length"]
+    / radar.radar_prop["transmitter"].waveform_prop["bandwidth"]
+    / 2
+)
+range_axis = np.linspace(
+    0, max_range, radar.sample_prop["samples_per_pulse"], endpoint=False
+)
+
+# Plot
+
+fig = go.Figure()
+fig.add_trace(
+    go.Scatter(
+        x=range_axis,
+        y=20 * np.log10(np.abs(range_profile[0, 0, :])),
+        name="Range profile",
+    )
+)
+fig.add_trace(go.Scatter(x=range_axis, y=10 * np.log10(ca_cfar), name="CA-CFAR"))
+fig.add_trace(go.Scatter(x=range_axis, y=10 * np.log10(os_cfar), name="OS-CFAR"))
+fig.update_layout(
+    yaxis=dict(title="Amplitude (dB)"),
+    xaxis=dict(title="Range (m)"),
 )
 
 # uncomment this to display interactive plot
